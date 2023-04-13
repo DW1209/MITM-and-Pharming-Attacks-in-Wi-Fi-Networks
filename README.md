@@ -6,7 +6,7 @@
 - Print out the username and password which a user submits to the [website](https://e3.nycu.edu.tw/login/index.php) using any of the Wi-Fi devices or VMs
 ### Pharminig Attack
 - Print out the IP/MAC addresses of all the Wi-Fi devices or VMs except for Attacker and AP/Host
-- Redirect the [NYCU home page](www.nycu.edu.tw) to the [phishing page](140.113.207.241)
+- Redirect the [NYCU home page](http://www.nycu.edu.tw) to the [phishing page](http://140.113.207.241)
 
 ## Execution
 ### Build
